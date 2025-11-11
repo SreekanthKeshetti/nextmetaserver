@@ -1,36 +1,24 @@
-const { Resend } = require("resend");
-const resend = new Resend(process.env.RESEND_API_KEY);
 const express = require("express");
 const cors = require("cors");
-const nodemailer = require("nodemailer");
 const dotenv = require("dotenv");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const { Resend } = require("resend");
 
 dotenv.config();
-
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 // Ensure uploads folder exists
 const uploadsDir = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir);
-}
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
 
-// 🗂️ Multer setup for file uploads
+// Multer setup for file uploads
 const upload = multer({ dest: uploadsDir });
-
-// 💌 Nodemailer transporter setup
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
 
 // ========================== DEBUG ENDPOINT ==========================
 app.get("/ping", (req, res) => res.send("✅ Server is working!"));
@@ -39,14 +27,13 @@ app.get("/ping", (req, res) => res.send("✅ Server is working!"));
 
 // 📨 Contact form 1 (ScrollContactSection)
 app.post("/api/contact-scroll", async (req, res) => {
-  console.log("Received /api/contact-scroll request:", req.body);
   const { name, email, phoneNumber, company, subject, message } = req.body;
-
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: process.env.EMAIL_TO,
-    subject: subject || "New Contact (Scroll Section)",
-    text: `
+  try {
+    await resend.emails.send({
+      from: process.env.FROM_EMAIL,
+      to: process.env.EMAIL_TO,
+      subject: subject || "New Contact (Scroll Section)",
+      text: `
 📩 New Contact from ScrollContactSection
 
 Name: ${name}
@@ -55,11 +42,8 @@ Phone: ${phoneNumber}
 Company: ${company}
 Subject: ${subject}
 Message: ${message}
-    `,
-  };
-
-  try {
-    await transporter.sendMail(mailOptions);
+      `,
+    });
     res.status(200).json({ success: true, message: "Email sent successfully" });
   } catch (err) {
     console.error("Error sending mail:", err);
@@ -69,14 +53,13 @@ Message: ${message}
 
 // 📨 Contact form 2 (ContactUsPage)
 app.post("/api/contact-page", async (req, res) => {
-  console.log("Received /api/contact-page request:", req.body);
   const { firstName, lastName, email, country, message } = req.body;
-
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: process.env.EMAIL_TO,
-    subject: "New Contact (Contact Page)",
-    text: `
+  try {
+    await resend.emails.send({
+      from: process.env.FROM_EMAIL,
+      to: process.env.EMAIL_TO,
+      subject: "New Contact (Contact Page)",
+      text: `
 📩 New Contact from ContactUsPage
 
 First Name: ${firstName}
@@ -84,11 +67,8 @@ Last Name: ${lastName}
 Email: ${email}
 Country: ${country}
 Message: ${message}
-    `,
-  };
-
-  try {
-    await transporter.sendMail(mailOptions);
+      `,
+    });
     res.status(200).json({ success: true, message: "Email sent successfully" });
   } catch (err) {
     console.error("Error sending mail:", err);
@@ -98,24 +78,20 @@ Message: ${message}
 
 // 💬 Chatbot form
 app.post("/api/chatbot", async (req, res) => {
-  console.log("Received /api/chatbot request:", req.body);
   const { name, email, datetime, topic } = req.body;
-
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: process.env.EMAIL_TO,
-    subject: `💬 New Chatbot Message - ${topic || "General"}`,
-    text: `
+  try {
+    await resend.emails.send({
+      from: process.env.FROM_EMAIL,
+      to: process.env.EMAIL_TO,
+      subject: `💬 New Chatbot Message - ${topic || "General"}`,
+      text: `
 Name: ${name || "N/A"}
 Email: ${email || "N/A"}
 Date/Time: ${datetime || "N/A"}
 Topic: ${topic || "N/A"}
 Time Submitted: ${new Date().toLocaleString()}
-    `,
-  };
-
-  try {
-    await transporter.sendMail(mailOptions);
+      `,
+    });
     res.status(200).json({ success: true, message: "Email sent successfully" });
   } catch (err) {
     console.error("Error sending mail:", err);
@@ -125,15 +101,24 @@ Time Submitted: ${new Date().toLocaleString()}
 
 // 🧑‍💼 Career form (with resume upload)
 app.post("/api/career-apply", upload.single("resume"), async (req, res) => {
-  console.log("Received /api/career-apply request:", req.body);
   const { fullName, email, phone, message, jobTitle } = req.body;
   const resumeFile = req.file;
 
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: process.env.EMAIL_TO,
-    subject: `🧑‍💼 New Job Application - ${jobTitle}`,
-    text: `
+  try {
+    const attachments = resumeFile
+      ? [
+          {
+            filename: resumeFile.originalname,
+            path: resumeFile.path,
+          },
+        ]
+      : [];
+
+    await resend.emails.send({
+      from: process.env.FROM_EMAIL,
+      to: process.env.EMAIL_TO,
+      subject: `🧑‍💼 New Job Application - ${jobTitle}`,
+      text: `
 📄 New Job Application Received
 
 Job Title: ${jobTitle}
@@ -143,36 +128,20 @@ Phone: ${phone}
 Message: ${message || "N/A"}
 
 Submitted At: ${new Date().toLocaleString()}
-    `,
-    attachments: resumeFile
-      ? [
-          {
-            filename: resumeFile.originalname,
-            path: resumeFile.path,
-          },
-        ]
-      : [],
-  };
+      `,
+      attachments,
+    });
 
-  try {
-    await transporter.sendMail(mailOptions);
-    res
-      .status(200)
-      .json({ success: true, message: "Application sent successfully" });
-
-    // Delete temp file after sending
     if (resumeFile) fs.unlinkSync(resumeFile.path);
+    res.status(200).json({ success: true, message: "Application sent successfully" });
   } catch (err) {
     console.error("Error sending career application:", err);
-    res
-      .status(500)
-      .json({ success: false, message: "Error sending application" });
+    res.status(500).json({ success: false, message: "Error sending application" });
   }
 });
 
 // ========================== REACT FRONTEND SERVING ==========================
 app.use(express.static(path.join(__dirname, "public")));
-
 app.get("/^/.*$/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
@@ -180,4 +149,3 @@ app.get("/^/.*$/", (req, res) => {
 // ========================== START SERVER ==========================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
-
