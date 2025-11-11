@@ -6,7 +6,7 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
-dotenv.config();
+
 
 const app = express();
 app.use(cors());
@@ -137,4 +137,5 @@ Submitted: ${new Date().toLocaleString()}
     res.status(500).json({ success: false });
   }
 });
+
 
