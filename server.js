@@ -1,38 +1,41 @@
-const express = require("express");
-const cors = require("cors");
-const dotenv = require("dotenv");
-const { Resend } = require("resend");
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import fetch from "node-fetch"; // or axios
 
 dotenv.config();
-
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Resend API
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const RESEND_FROM = process.env.RESEND_FROM;
+const RESEND_TO = process.env.RESEND_TO;
 
-// Debug endpoint
-app.get("/ping", (req, res) => res.send("✅ Server is working!"));
-
-// Contact form endpoint
-app.post("/api/contact", async (req, res) => {
-  const { name, email, message } = req.body;
-
+app.post("/api/contact-scroll", async (req, res) => {
+  const { name, email, phoneNumber, company, subject, message } = req.body;
   try {
-    await resend.emails.send({
-      from: "no-reply@yourdomain.com", // can be any verified domain
-      to: process.env.EMAIL_TO,
-      subject: `New Contact Form Submission`,
-      text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`,
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from: RESEND_FROM,
+        to: RESEND_TO,
+        subject: subject || "New Contact Form Submission",
+        text: `Name: ${name}\nEmail: ${email}\nPhone: ${phoneNumber}\nCompany: ${company}\nMessage: ${message}`,
+      }),
     });
-
-    res.status(200).json({ success: true, message: "Email sent successfully" });
+    if (!response.ok) throw new Error("Failed to send email via Resend");
+    res.status(200).json({ success: true });
   } catch (err) {
-    console.error("❌ Error sending email:", err);
-    res.status(500).json({ success: false, message: "Error sending email" });
+    console.error(err);
+    res.status(500).json({ success: false });
   }
 });
 
-// Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
