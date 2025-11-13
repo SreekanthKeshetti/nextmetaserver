@@ -300,19 +300,61 @@ Time Submitted: ${new Date().toLocaleString()}
 });
 
 // 🧑‍💼 Career form (with resume upload)
+// app.post("/api/career-apply", upload.single("resume"), async (req, res) => {
+//   const { fullName, email, phone, message, jobTitle } = req.body;
+//   const resumeFile = req.file;
+
+//   try {
+//     const attachments = resumeFile
+//       ? [
+//           {
+//             filename: resumeFile.originalname,
+//             path: resumeFile.path,
+//           },
+//         ]
+//       : [];
+
+//     await resend.emails.send({
+//       from: process.env.FROM_EMAIL,
+//       to: process.env.EMAIL_TO,
+//       subject: `🧑‍💼 New Job Application - ${jobTitle}`,
+//       text: `
+// 📄 New Job Application Received
+
+// Job Title: ${jobTitle}
+// Name: ${fullName}
+// Email: ${email}
+// Phone: ${phone}
+// Message: ${message || "N/A"}
+
+// Submitted At: ${new Date().toLocaleString()}
+//       `,
+//       attachments,
+//     });
+
+//     if (resumeFile) fs.unlinkSync(resumeFile.path);
+//     res.status(200).json({ success: true, message: "Application sent successfully" });
+//   } catch (err) {
+//     console.error("Error sending career application:", err);
+//     res.status(500).json({ success: false, message: "Error sending application" });
+//   }
+// });
 app.post("/api/career-apply", upload.single("resume"), async (req, res) => {
   const { fullName, email, phone, message, jobTitle } = req.body;
   const resumeFile = req.file;
 
   try {
-    const attachments = resumeFile
-      ? [
-          {
-            filename: resumeFile.originalname,
-            path: resumeFile.path,
-          },
-        ]
-      : [];
+    let attachments = [];
+
+    if (resumeFile) {
+      const fileContent = fs.readFileSync(resumeFile.path).toString("base64");
+      attachments = [
+        {
+          filename: resumeFile.originalname,
+          content: fileContent, // ✅ Base64 instead of path
+        },
+      ];
+    }
 
     await resend.emails.send({
       from: process.env.FROM_EMAIL,
@@ -340,6 +382,7 @@ Submitted At: ${new Date().toLocaleString()}
   }
 });
 
+
 // ========================== REACT FRONTEND SERVING ==========================
 app.use(express.static(path.join(__dirname, "public")));
 app.get("/^/.*$/", (req, res) => {
@@ -349,4 +392,5 @@ app.get("/^/.*$/", (req, res) => {
 // ========================== START SERVER ==========================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+
 
