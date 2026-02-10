@@ -23,13 +23,12 @@ const upload = multer({ dest: uploadsDir });
 
 // 💌 Nodemailer transporter setup
 const transporter = nodemailer.createTransport({
-  service: "gmail",
-  host: "smtp.gmail.com", 
-  port: 465,               // Use 465 for secure
-  secure: true,            // true for 465, false for other ports
+  host: "smtp.gmail.com", // Explicit host
+  port: 465, // Secure port
+  secure: true, // true for 465, false for other ports
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // MUST be the App Password
+    pass: process.env.EMAIL_PASS,
   },
 });
 
@@ -181,4 +180,3 @@ app.get("/^/.*$/", (req, res) => {
 // ========================== START SERVER ==========================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
-
