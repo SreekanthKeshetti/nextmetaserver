@@ -5,31 +5,58 @@ import dotenv from "dotenv";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url"; // Needed for path in ES Modules
 
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+// Updated CORS to allow your frontend
+app.use(cors({
+  origin: "*", // Allow all connections for now to rule out CORS issues
+  methods: ["POST", "GET"],
+  credentials: true
+}));
+
 app.use(express.json());
 
 // 🗂️ Multer setup for file uploads
 const upload = multer({ dest: "uploads/" });
 
-// 💌 Nodemailer transporter setup
+// ---------------------------------------------------------
+// 🚨 THIS IS THE FIX: UPDATED TRANSPORTER SETTINGS 🚨
+// ---------------------------------------------------------
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com", // We define the host explicitly
+  port: 587,              // Port 587 is the standard for Cloud Servers
+  secure: false,          // Must be false for port 587
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    pass: process.env.EMAIL_PASS, // MUST be the 16-char App Password
   },
+  tls: {
+    // This setting prevents the connection from hanging on Render
+    rejectUnauthorized: false
+  }
 });
+
+// Verify connection configuration immediately on server start
+transporter.verify(function (error, success) {
+  if (error) {
+    console.log("❌ Transporter Error:", error);
+  } else {
+    console.log("✅ Server is ready to take our messages");
+  }
+});
+
 
 // 📨 Contact form 1 (ScrollContactSection)
 app.post("/api/contact-scroll", async (req, res) => {
   const { name, email, phoneNumber, company, subject, message } = req.body;
 
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: `"${name}" <${process.env.EMAIL_USER}>`, // Shows sender name but uses your auth email
+    replyTo: email, // When you click reply, it goes to the client
     to: process.env.EMAIL_TO,
     subject: subject || "New Contact (Scroll Section)",
     text: `
@@ -46,10 +73,11 @@ app.post("/api/contact-scroll", async (req, res) => {
 
   try {
     await transporter.sendMail(mailOptions);
+    console.log("✅ Email sent successfully");
     res.status(200).json({ success: true, message: "Email sent successfully" });
   } catch (err) {
-    console.error("Error sending mail:", err);
-    res.status(500).json({ success: false, message: "Error sending email" });
+    console.error("❌ Error sending mail:", err);
+    res.status(500).json({ success: false, message: "Error sending email", error: err.message });
   }
 });
 
@@ -58,7 +86,8 @@ app.post("/api/contact-page", async (req, res) => {
   const { firstName, lastName, email, country, message } = req.body;
 
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: `"${firstName} ${lastName}" <${process.env.EMAIL_USER}>`,
+    replyTo: email,
     to: process.env.EMAIL_TO,
     subject: "New Contact (Contact Page)",
     text: `
@@ -74,10 +103,11 @@ app.post("/api/contact-page", async (req, res) => {
 
   try {
     await transporter.sendMail(mailOptions);
+    console.log("✅ Email sent successfully");
     res.status(200).json({ success: true, message: "Email sent successfully" });
   } catch (err) {
-    console.error("Error sending mail:", err);
-    res.status(500).json({ success: false, message: "Error sending email" });
+    console.error("❌ Error sending mail:", err);
+    res.status(500).json({ success: false, message: "Error sending email", error: err.message });
   }
 });
 
@@ -86,7 +116,8 @@ app.post("/api/chatbot", async (req, res) => {
   const { name, email, datetime, topic } = req.body;
 
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: `"${name}" <${process.env.EMAIL_USER}>`,
+    replyTo: email,
     to: process.env.EMAIL_TO,
     subject: `💬 New Chatbot Message - ${topic || "General"}`,
     text: `
@@ -113,7 +144,8 @@ app.post("/api/career-apply", upload.single("resume"), async (req, res) => {
   const resumeFile = req.file;
 
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: `"${fullName}" <${process.env.EMAIL_USER}>`,
+    replyTo: email,
     to: process.env.EMAIL_TO,
     subject: `🧑‍💼 New Job Application - ${jobTitle}`,
     text: `
@@ -139,17 +171,15 @@ app.post("/api/career-apply", upload.single("resume"), async (req, res) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    res
-      .status(200)
-      .json({ success: true, message: "Application sent successfully" });
+    res.status(200).json({ success: true, message: "Application sent successfully" });
 
     // Delete temp file after sending
-    if (resumeFile) fs.unlinkSync(resumeFile.path);
+    if (resumeFile && fs.existsSync(resumeFile.path)) {
+      fs.unlinkSync(resumeFile.path);
+    }
   } catch (err) {
     console.error("Error sending career application:", err);
-    res
-      .status(500)
-      .json({ success: false, message: "Error sending application" });
+    res.status(500).json({ success: false, message: "Error sending application" });
   }
 });
 
