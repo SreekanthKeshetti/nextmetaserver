@@ -27,16 +27,19 @@ const upload = multer({ dest: "uploads/" });
 // 🚨 THIS IS THE FIX: UPDATED TRANSPORTER SETTINGS 🚨
 // ---------------------------------------------------------
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com", // We define the host explicitly
-  port: 587,              // Port 587 is the standard for Cloud Servers
-  secure: false,          // Must be false for port 587
+  host: "smtp.gmail.com",
+  port: 465,              // ✅ SWITCH TO SSL PORT
+  secure: true,           // ✅ MUST BE TRUE FOR PORT 465
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // MUST be the 16-char App Password
+    pass: process.env.EMAIL_PASS,
   },
+  // ⬇️ ADD THESE CONNECTION SETTINGS TO FIX TIMEOUTS ⬇️
+  connectionTimeout: 10000, // Wait 10 seconds for connection
+  greetingTimeout: 5000,    // Wait 5 seconds for greeting
+  socketTimeout: 10000,     // Wait 10 seconds for data
   tls: {
-    // This setting prevents the connection from hanging on Render
-    rejectUnauthorized: false
+    rejectUnauthorized: false 
   }
 });
 
@@ -185,3 +188,4 @@ app.post("/api/career-apply", upload.single("resume"), async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+
