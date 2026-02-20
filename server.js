@@ -1,3 +1,184 @@
+// const express = require("express");
+// const cors = require("cors");
+// const dotenv = require("dotenv");
+// const multer = require("multer");
+// const path = require("path");
+// const fs = require("fs");
+// const { Resend } = require("resend");
+
+// dotenv.config();
+// const app = express();
+// app.use(cors());
+// app.use(express.json());
+
+// const resend = new Resend(process.env.RESEND_API_KEY);
+
+// // Ensure uploads folder exists
+// const uploadsDir = path.join(__dirname, "uploads");
+// if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
+
+// // Multer setup for file uploads
+// const upload = multer({ dest: uploadsDir });
+
+// // ========================== DEBUG ENDPOINT ==========================
+// app.get("/ping", (req, res) => res.send("✅ Server is working!"));
+
+// // ========================== API ROUTES ==========================
+
+// // 📨 Contact form 1 (ScrollContactSection)
+// app.post("/api/contact-scroll", async (req, res) => {
+//   const { name, email, phoneNumber, company, subject, message } = req.body;
+//   try {
+//     await resend.emails.send({
+//       from: process.env.FROM_EMAIL,
+//       to: process.env.EMAIL_TO,
+//       subject: subject || "New Contact (Scroll Section)",
+//       text: `
+// 📩 New Contact from ScrollContactSection
+
+// Name: ${name}
+// Email: ${email}
+// Phone: ${phoneNumber}
+// Company: ${company}
+// Subject: ${subject}
+// Message: ${message}
+//       `,
+//     });
+//     res.status(200).json({ success: true, message: "Email sent successfully" });
+//   } catch (err) {
+//     console.error("Error sending mail:", err);
+//     res.status(500).json({ success: false, message: "Error sending email" });
+//   }
+// });
+
+// // 📨 Contact form 2 (ContactUsPage)
+// app.post("/api/contact-page", async (req, res) => {
+//   const { firstName, lastName, email, country, message } = req.body;
+//   try {
+//     await resend.emails.send({
+//       from: process.env.FROM_EMAIL,
+//       to: process.env.EMAIL_TO,
+//       subject: "New Contact (Contact Page)",
+//       text: `
+// 📩 New Contact from ContactUsPage
+
+// First Name: ${firstName}
+// Last Name: ${lastName}
+// Email: ${email}
+// Country: ${country}
+// Message: ${message}
+//       `,
+//     });
+//     res.status(200).json({ success: true, message: "Email sent successfully" });
+//   } catch (err) {
+//     console.error("Error sending mail:", err);
+//     res.status(500).json({ success: false, message: "Error sending email" });
+//   }
+// });
+
+// // 💬 Chatbot Lead Generation (UPDATED)
+// app.post("/api/chatbot", async (req, res) => {
+//   // Capture all the detailed fields sent by the new UI
+//   const { name, email, phone, company, topic, subTopic, message } = req.body;
+
+//   try {
+//     await resend.emails.send({
+//       from: process.env.FROM_EMAIL,
+//       to: process.env.EMAIL_TO,
+//       // Subject is now specific: "🔔 New Lead: Cloud & AI (Azure)"
+//       subject: `🔔 New Lead: ${topic} - ${subTopic || "General"}`,
+//       text: `
+// 🚀 New Lead Generated via AI Chatbot
+
+// 👤 Prospect Details:
+// --------------------
+// Name:    ${name || "N/A"}
+// Company: ${company || "N/A"}
+// Email:   ${email || "N/A"}
+// Phone:   ${phone || "N/A"}
+
+// 📌 Interest Profile:
+// --------------------
+// Category: ${topic || "General"}
+// Specific Interest: ${subTopic || "General"}
+
+// 📝 Requirements / Message:
+// --------------------------
+// ${message || "N/A"}
+
+// --------------------------
+// Time Captured: ${new Date().toLocaleString()}
+//       `,
+//     });
+//     res
+//       .status(200)
+//       .json({ success: true, message: "Lead captured successfully" });
+//   } catch (err) {
+//     console.error("Error sending chatbot lead:", err);
+//     res.status(500).json({ success: false, message: "Error sending email" });
+//   }
+// });
+
+// // 🧑‍💼 Career form (with resume upload)
+// app.post("/api/career-apply", upload.single("resume"), async (req, res) => {
+//   const { fullName, email, phone, message, jobTitle } = req.body;
+//   const resumeFile = req.file;
+
+//   try {
+//     let attachments = [];
+
+//     if (resumeFile) {
+//       const fileContent = fs.readFileSync(resumeFile.path).toString("base64");
+//       attachments = [
+//         {
+//           filename: resumeFile.originalname,
+//           content: fileContent, // ✅ Base64 instead of path for Resend compatibility
+//         },
+//       ];
+//     }
+
+//     await resend.emails.send({
+//       from: process.env.FROM_EMAIL,
+//       to: process.env.EMAIL_TO,
+//       subject: `🧑‍💼 New Job Application - ${jobTitle || "General"}`,
+//       text: `
+// 📄 New Job Application Received
+
+// Job Title: ${jobTitle || "General Application"}
+// Name: ${fullName}
+// Email: ${email}
+// Phone: ${phone}
+// Message: ${message || "N/A"}
+
+// Submitted At: ${new Date().toLocaleString()}
+//       `,
+//       attachments,
+//     });
+
+//     // Clean up uploaded file
+//     if (resumeFile) fs.unlinkSync(resumeFile.path);
+
+//     res
+//       .status(200)
+//       .json({ success: true, message: "Application sent successfully" });
+//   } catch (err) {
+//     console.error("Error sending career application:", err);
+//     res
+//       .status(500)
+//       .json({ success: false, message: "Error sending application" });
+//   }
+// });
+
+// // ========================== REACT FRONTEND SERVING ==========================
+// app.use(express.static(path.join(__dirname, "public")));
+// app.get("/^/.*$/", (req, res) => {
+//   res.sendFile(path.join(__dirname, "public", "index.html"));
+// });
+
+// // ========================== START SERVER ==========================
+// const PORT = process.env.PORT || 5000;
+// app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
@@ -5,9 +186,11 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const { Resend } = require("resend");
+const compression = require("compression"); // 1. Import compression
 
 dotenv.config();
 const app = express();
+app.use(compression());
 app.use(cors());
 app.use(express.json());
 
@@ -76,50 +259,29 @@ Message: ${message}
   }
 });
 
-// 💬 Chatbot Lead Generation (UPDATED)
+// 💬 Chatbot form
 app.post("/api/chatbot", async (req, res) => {
-  // Capture all the detailed fields sent by the new UI
-  const { name, email, phone, company, topic, subTopic, message } = req.body;
-
+  const { name, email, datetime, topic } = req.body;
   try {
     await resend.emails.send({
       from: process.env.FROM_EMAIL,
       to: process.env.EMAIL_TO,
-      // Subject is now specific: "🔔 New Lead: Cloud & AI (Azure)"
-      subject: `🔔 New Lead: ${topic} - ${subTopic || "General"}`,
+      subject: `💬 New Chatbot Message - ${topic || "General"}`,
       text: `
-🚀 New Lead Generated via AI Chatbot
-
-👤 Prospect Details:
---------------------
-Name:    ${name || "N/A"}
-Company: ${company || "N/A"}
-Email:   ${email || "N/A"}
-Phone:   ${phone || "N/A"}
-
-📌 Interest Profile:
---------------------
-Category: ${topic || "General"}
-Specific Interest: ${subTopic || "General"}
-
-📝 Requirements / Message:
---------------------------
-${message || "N/A"}
-
---------------------------
-Time Captured: ${new Date().toLocaleString()}
+Name: ${name || "N/A"}
+Email: ${email || "N/A"}
+Date/Time: ${datetime || "N/A"}
+Topic: ${topic || "N/A"}
+Time Submitted: ${new Date().toLocaleString()}
       `,
     });
-    res
-      .status(200)
-      .json({ success: true, message: "Lead captured successfully" });
+    res.status(200).json({ success: true, message: "Email sent successfully" });
   } catch (err) {
-    console.error("Error sending chatbot lead:", err);
+    console.error("Error sending mail:", err);
     res.status(500).json({ success: false, message: "Error sending email" });
   }
 });
 
-// 🧑‍💼 Career form (with resume upload)
 app.post("/api/career-apply", upload.single("resume"), async (req, res) => {
   const { fullName, email, phone, message, jobTitle } = req.body;
   const resumeFile = req.file;
@@ -132,7 +294,7 @@ app.post("/api/career-apply", upload.single("resume"), async (req, res) => {
       attachments = [
         {
           filename: resumeFile.originalname,
-          content: fileContent, // ✅ Base64 instead of path for Resend compatibility
+          content: fileContent, // ✅ Base64 instead of path
         },
       ];
     }
@@ -140,11 +302,11 @@ app.post("/api/career-apply", upload.single("resume"), async (req, res) => {
     await resend.emails.send({
       from: process.env.FROM_EMAIL,
       to: process.env.EMAIL_TO,
-      subject: `🧑‍💼 New Job Application - ${jobTitle || "General"}`,
+      subject: `🧑‍💼 New Job Application - ${jobTitle}`,
       text: `
 📄 New Job Application Received
 
-Job Title: ${jobTitle || "General Application"}
+Job Title: ${jobTitle}
 Name: ${fullName}
 Email: ${email}
 Phone: ${phone}
@@ -155,9 +317,7 @@ Submitted At: ${new Date().toLocaleString()}
       attachments,
     });
 
-    // Clean up uploaded file
     if (resumeFile) fs.unlinkSync(resumeFile.path);
-
     res
       .status(200)
       .json({ success: true, message: "Application sent successfully" });
@@ -170,7 +330,14 @@ Submitted At: ${new Date().toLocaleString()}
 });
 
 // ========================== REACT FRONTEND SERVING ==========================
-app.use(express.static(path.join(__dirname, "public")));
+// Making this line commented the recent for the one for perforemance.
+// app.use(express.static(path.join(__dirname, "public")));
+app.use(
+  express.static(path.join(__dirname, "public"), {
+    maxAge: "1y", // Cache assets for 1 year
+    etag: false,
+  }),
+);
 app.get("/^/.*$/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
